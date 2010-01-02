@@ -1,0 +1,57 @@
+graph G {
+
+graph [splines=true,overlap=false]
+
+node [shape=circle,style=filled,fillcolor="#dfdfdf",fixedsize=true,width=.34]
+v1 [label="v_1"]
+v2 [label="v_2"]
+v3 [label="v_3"]
+v4 [label="v_4"]
+v5 [label="v_5"]
+v6 [label="v_6"]
+v7 [label="v_7"]
+v8 [label="v_8"]
+
+node [shape=point,fillcolor="#000000",width=.05,height=.05]
+n1 -- v8
+n1 -- v6
+n1 -- v3
+n1 -- v5
+n1 -- v2
+n2 -- v4
+n2 -- v5
+n2 -- v1
+n2 -- v7
+n3 -- v4
+n3 -- v2
+n3 -- v5
+n3 -- v7
+n4 -- v4
+n4 -- v7
+n5 -- v3
+n5 -- v5
+n6 -- v8
+n6 -- v2
+n6 -- v4
+n7 -- v6
+n7 -- v5
+n7 -- v2
+n8 -- v5
+n8 -- v7
+n8 -- v2
+n9 -- v8
+n9 -- v4
+
+node [style=none,shape=none,width=.05,height=.05]
+edge [style=invis,len=.2]
+n1_label [label="n_1"]; n1_label -- n1
+n2_label [label="n_2"]; n2_label -- n2
+n3_label [label="n_3"]; n3_label -- n3
+n4_label [label="n_4"]; n4_label -- n4
+n5_label [label="n_5"]; n5_label -- n5
+n6_label [label="n_6"]; n6_label -- n6
+n7_label [label="n_7"]; n7_label -- n7
+n8_label [label="n_8"]; n8_label -- n8
+n9_label [label="n_9"]; n9_label -- n9
+
+}

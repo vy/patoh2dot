@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2010, Volkan YAZICI <volkan.yazici@gmail.com>
+# All rights reserved.
+#   
+# Redistribution  and  use   in  source  and  binary  forms,   with  or  without
+# modification, are permitted provided that the following conditions are met:
+#   
+# - Redistributions of source code must  retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#   
+# - Redistributions in  binary form must  reproduce the above  copyright notice,
+#   this list  of conditions and  the following disclaimer in  the documentation
+#   and/or other materials provided with the distribution.
+#   
+# THIS SOFTWARE  IS PROVIDED BY THE  COPYRIGHT HOLDERS AND  CONTRIBUTORS "AS IS"
+# AND  ANY EXPRESS OR  IMPLIED WARRANTIES,  INCLUDING, BUT  NOT LIMITED  TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN  NO EVENT SHALL THE  COPYRIGHT OWNER OR  CONTRIBUTORS BE LIABLE
+# FOR  ANY DIRECT,  INDIRECT, INCIDENTAL,  SPECIAL, EXEMPLARY,  OR CONSEQUENTIAL
+# DAMAGES (INCLUDING,  BUT NOT  LIMITED TO, PROCUREMENT  OF SUBSTITUTE  GOODS OR
+# SERVICES; LOSS  OF USE,  DATA, OR PROFITS;  OR BUSINESS  INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# patoh2dot - Converts PaToH input file format into its graphviz dot file
+#             representation ready to be fed into dot2tex. (PaToH (Partitioning
+#             Tools for Hypergraph) is a Multilevel Hypergraph Partitioning tool
+#             by Ümit V. Çatalyürek. See http://bmi.osu.edu/~umit/software.html
+#             for details.)
+
+
+import os
+import sys
+
+
+### Parsing ####################################################################
+
+def parse_net(typ, s):
+    w = None
+    if typ > 1:
+        (w, s) = s.split(None, 1)
+        w = int(w)
+    return {'nwgt': w, 'pins': map(int, s.split())}
+
+def parse_graph(f):
+    props = map(int, f.readline().split())
+    typ = 0		# Input file type.
+    if len(props) == 5:
+        typ = props[4]
+    six = props[0]	# Start index.
+    nvs = props[1]      # Vertex count.
+    nns = props[2]	# Net count.
+    nets = {}		# Map of {nwgt, pins}.
+    for ix in range(nns):
+        nets[ix + six] = parse_net(typ, f.readline())
+    vertices = {}	# Map of {vwgt}.
+    if typ == 3 or typ == 1:
+        vws = map(int, f.readline().split())
+        for ix in range(nvs):
+            vertices[ix + six] = {'vwgt': vws[ix]}
+    else:
+        for ix in range(nvs):
+            vertices[ix + six] = {'vwgt': None}
+    return (typ, vertices, nets)
+
+### Rendering ##################################################################
+
+def vertices_to_dot(f, typ, vertices):
+    labels = {}
+    for k in vertices.keys():
+        labels[k] = 'v_%(i)d' % {'i': k}
+    if typ == 1 or typ == 3:
+        for (k, v) in vertices.items():
+            labels[k] = '%(l)s^{\\\\text{\\\\color{gray}\\\\tiny[%(w)d]}}' \
+                        % {'l': labels[k], 'w': v['vwgt']}
+    f.write('node [shape=circle,style=filled,fillcolor="#dfdfdf",'
+            'fixedsize=true,width=.34]\n')
+    for k in vertices.keys():
+        f.write('v%(i)d [label="%(l)s"]\n' % {'i': k, 'l': labels[k]})
+    f.write('\n')
+
+def net_labels_to_dot(f, typ, nets):
+    labels = {}
+    for k in nets.keys():
+        labels[k] = 'n_%(i)d' % {'i': k}
+    if typ > 1:
+        for (k, v) in nets.items():
+            labels[k] = '%(l)s^{\\\\text{\\\\color{gray}\\\\tiny[%(w)d]}}' \
+                        % {'l': labels[k], 'w': v['nwgt']}
+    f.write('node [style=none,shape=none,width=.05,height=.05]\n')
+    f.write('edge [style=invis,len=.2]\n')
+    for k in nets.keys():
+        f.write('n%(i)d_label [label="%(l)s"]; '
+                'n%(i)d_label -- n%(i)d\n'
+                % {'i': k, 'l': labels[k]})
+    f.write('\n')
+
+def nets_to_dot(f, typ, nets):
+    f.write('node [shape=point,fillcolor="#000000",width=.05,height=.05]\n')
+    edges = {}
+    for (k, v) in nets.items():
+        edges[k] = {}
+        for j in v['pins']:
+            edges[k][j] = 'n%(from)d -- v%(to)d' % {'from': k, 'to': j}
+    if typ > 1:
+        maxnwgt = float(reduce(max,[net['nwgt'] for net in nets.values()]))
+        for (k, v) in nets.items():
+            for j in v['pins']:
+                edges[k][j] = '%(e)s [weight=%(w).2f]' \
+                              % {'e': edges[k][j], \
+                                 'w': (v['nwgt']/maxnwgt)}
+    for (k, v) in nets.items():
+        for j in v['pins']:
+            f.write('%s\n' % edges[k][j])
+    f.write('\n')
+    net_labels_to_dot(f, typ, nets)
+
+def graph_to_dot(f, typ, vertices, nets):
+    f.write('graph G {\n')
+    f.write('\n')
+    f.write('graph [splines=true,overlap=false]\n')
+    f.write('\n')
+    vertices_to_dot(f, typ, vertices)
+    nets_to_dot(f, typ, nets)
+    f.write('}\n')
+
+
+### Main #######################################################################
+
+def parse_args():
+    l = len(sys.argv)
+    if not (l == 2 or l == 3):
+        print 'Usage:', sys.argv[0], ' <INPUT_FILE> [<OUTPUT_FILE>]'
+        sys.exit(1)
+    inpf = open(sys.argv[1], 'r')
+    outf = sys.stdout
+    if l == 3:
+        outf = open(sys.argv[2], 'w')
+    return (inpf, outf)
+
+def main():
+    (inpf, outf) = parse_args()
+    (typ, vertices, nets) = parse_graph(inpf)
+    graph_to_dot(outf, typ, vertices, nets)
+
+if __name__ == '__main__':
+    main()
