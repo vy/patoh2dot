@@ -71,7 +71,7 @@ def parse_graph(f):
 def vertices_to_dot(f, typ, vertices):
     labels = {}
     for k in vertices.keys():
-        labels[k] = 'v_%(i)d' % {'i': k}
+        labels[k] = 'v_{%(i)d}' % {'i': k}
     if typ == 1 or typ == 3:
         for (k, v) in vertices.items():
             labels[k] = '%(l)s^{\\\\text{\\\\color{gray}\\\\tiny[%(w)d]}}' \
@@ -85,7 +85,7 @@ def vertices_to_dot(f, typ, vertices):
 def net_labels_to_dot(f, typ, nets):
     labels = {}
     for k in nets.keys():
-        labels[k] = 'n_%(i)d' % {'i': k}
+        labels[k] = 'n_{%(i)d}' % {'i': k}
     if typ > 1:
         for (k, v) in nets.items():
             labels[k] = '%(l)s^{\\\\text{\\\\color{gray}\\\\tiny[%(w)d]}}' \
